@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>سجل الصفقات</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="masthead" data-masthead></header>
+<main id="app"><p class="muted">جارٍ التحميل…</p></main>
+<footer class="foot" data-foot></footer>
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  const T = window.TJ;
+  T.chrome("home");
+  T.load(({ meta, trades, sum }) => {
+    const app = document.getElementById("app");
+    const cur = `<span class="cur">${T.cur}</span>`;
+    const updated = meta.updated ? `آخر تحديث: ${T.fmtDate(meta.updated)}` : "";
+    if (!trades.length) {
+      app.innerHTML = `<div class="page-head"><h1>لوحة المتابعة</h1></div>` +
+        T.emptyState("لا توجد صفقات بعد", "بداية موفقة بإذن الله. ستمتلئ هذه اللوحة تلقائياً مع كل صفقة تُسجَّل.");
+      return;
+    }
+    const cap = +meta.starting_capital || 0;
+    const pf = sum.profitFactor === Infinity ? "∞" : sum.profitFactor == null ? "—" : T.num(T.nf2.format(sum.profitFactor));
+    const k = (label, value, foot) => `<div class="card kpi"><div class="kpi-label">${label}</div><div class="kpi-value">${value}</div>${foot ? `<div class="kpi-foot">${foot}</div>` : ""}</div>`;
+
+    app.innerHTML = `
+      <div class="page-head"><h1>لوحة المتابعة</h1><div class="updated">${updated}</div></div>
+      <section class="hero">
+        <div class="card hero-main">
+          <div class="hero-label">صافي الربح المحقق (بعد العمولات)</div>
+          <div class="hero-value ${T.tone(sum.realized)}">${T.money(sum.realized, { signed: true })}${cur}</div>
+          <div class="hero-meta">
+            <span>هذا الشهر: <b>${T.signedMoney(sum.thisMonth)}</b></span>
+            ${cap ? `<span>على رأس المال: <b>${T.signedPct(sum.realized / cap)}</b></span>` : ""}
+            <span>صفقات مغلقة: <b>${T.num(sum.closed.length)}</b> من ${T.num(sum.count)}</span>
+          </div>
+          <div class="chart spark" id="spark"></div>
+        </div>
+        <div class="kpis">
+          ${k("نسبة الصفقات الرابحة", sum.winRate == null ? "—" : T.pct(sum.winRate, false), `${T.num(sum.wins.length)} رابحة · ${T.num(sum.losses.length)} خاسرة`)}
+          ${k("معامل الربح", pf, "مجموع الأرباح ÷ مجموع الخسائر")}
+          ${k("متوسط الصفقة الرابحة", sum.avgWin == null ? "—" : T.signedMoney(sum.avgWin), sum.avgLoss == null ? "" : `متوسط الخاسرة: ${T.signedMoney(sum.avgLoss)}`)}
+          ${k("مراكز مفتوحة", T.num(sum.open.length), `قيمتها بسعر الشراء: ${T.money(sum.openBasis, { whole: true })} ${T.cur}`)}
+        </div>
+      </section>
+
+      <section class="grid-2">
+        <div class="card"><div class="card-head"><h2>منحنى الربح التراكمي</h2><span class="hint">الأحدث يساراً</span></div><div class="card-body chart" id="equity"></div></div>
+        <div class="card"><div class="card-head"><h2>حسب الشهر</h2><span class="hint">آخر 12 شهراً</span></div><div class="card-body chart" id="monthly"></div></div>
+      </section>
+
+      <section class="grid-2">
+        <div class="card">
+          <div class="card-head"><h2>المراكز المفتوحة</h2><span class="hint">بانتظار البيع</span></div>
+          <div class="card-body" id="open"></div>
+        </div>
+        <div class="stack">
+          <div class="card"><div class="card-head"><h2>أبرز الأرقام</h2></div><div class="card-body" id="facts"></div></div>
+          <div class="card"><div class="card-head"><h2>حسب السهم</h2></div><div class="card-body" id="bysym"></div></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>آخر الصفقات المغلقة</h2><a class="hint" href="${T.pageHref("trades.html")}">عرض الكل</a></div>
+        <div class="card-body" id="recent"></div>
+      </section>`;
+
+    const drawCharts = () => {
+      T.equityChart(document.getElementById("spark"), sum.events, { compact: true, h: 90 });
+      T.equityChart(document.getElementById("equity"), sum.events);
+      T.monthlyChart(document.getElementById("monthly"), sum.months);
+    };
+    drawCharts();
+    let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(drawCharts, 150); });
+
+    const openEl = document.getElementById("open");
+    openEl.innerHTML = sum.open.length ? `<div class="table-wrap"><table class="responsive"><thead><tr>
+        <th>السهم</th><th class="n">الكمية المتبقية</th><th class="n">تكلفة الوحدة</th><th class="n">القيمة</th><th class="n">منذ</th></tr></thead><tbody>` +
+      sum.open.map((t) => `<tr class="link" data-href="${T.tradeHref(t.id)}">
+        <td class="head-cell"><div class="hc">${T.symCell(t)}${T.statusPill(t)}</div></td>
+        <td class="n" data-label="الكمية المتبقية">${T.fmtQty(t.remaining)}</td>
+        <td class="n" data-label="تكلفة الوحدة">${T.money(t.unitCost)}</td>
+        <td class="n" data-label="القيمة بسعر الشراء">${T.money(t.openBasis)}</td>
+        <td class="n" data-label="منذ">${T.dayWord(t.holdDays)}</td></tr>`).join("") + `</tbody></table></div>`
+      : `<div class="mini-empty">لا توجد مراكز مفتوحة حالياً.</div>`;
+
+    const f = (label, val) => `<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--rule)"><span class="muted">${label}</span><span>${val}</span></div>`;
+    document.getElementById("facts").innerHTML =
+      (sum.best ? f("أفضل صفقة", `<a href="${T.tradeHref(sum.best.id)}">${T.esc(sum.best.display)}</a> ${T.signedMoney(sum.best.realized)}`) : "") +
+      (sum.worst ? f("أسوأ صفقة", `<a href="${T.tradeHref(sum.worst.id)}">${T.esc(sum.worst.display)}</a> ${T.signedMoney(sum.worst.realized)}`) : "") +
+      (sum.avgHold != null ? f("متوسط مدة الاحتفاظ", T.dayWord(Math.round(sum.avgHold))) : "") +
+      `<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0"><span class="muted">إجمالي العمولات المدفوعة</span><span>${T.money(sum.fees)} ${T.cur}</span></div>`;
+
+    document.getElementById("bysym").innerHTML = sum.bySymbol.length ? sum.bySymbol.slice(0, 6).map((s, i, a) => {
+      const max = Math.max(...a.map((x) => Math.abs(x.pnl))) || 1;
+      return `<div style="padding:6px 0"><div style="display:flex;justify-content:space-between;gap:10px;font-size:14px"><span>${T.esc(s.name || s.symbol)} <span class="muted" style="font-size:12px">(${T.num(s.n)})</span></span>${T.signedMoney(s.pnl)}</div>
+        <div style="height:6px;background:var(--surface-2);border-radius:4px;margin-top:4px;overflow:hidden"><div style="height:100%;width:${(Math.abs(s.pnl) / max * 100).toFixed(1)}%;background:var(--${s.pnl >= 0 ? "gain" : "loss"});border-radius:4px"></div></div></div>`;
+    }).join("") : `<div class="mini-empty">لا توجد صفقات مباعة بعد.</div>`;
+
+    const recent = trades.filter((t) => t.status === "closed").sort((a, b) => b.lastSell.localeCompare(a.lastSell)).slice(0, 6);
+    document.getElementById("recent").innerHTML = recent.length ? `<div class="table-wrap"><table class="responsive"><thead><tr>
+        <th>السهم</th><th>تاريخ البيع</th><th class="n">الكمية</th><th class="n">شراء</th><th class="n">بيع</th><th class="n">صافي الربح</th><th class="n">العائد</th></tr></thead><tbody>` +
+      recent.map((t) => `<tr class="link" data-href="${T.tradeHref(t.id)}">
+        <td class="head-cell"><div class="hc">${T.symCell(t)}${T.statusPill(t)}</div></td>
+        <td data-label="تاريخ البيع">${T.fmtShort(t.lastSell)}</td>
+        <td class="n" data-label="الكمية">${T.fmtQty(t.buy.qty)}</td>
+        <td class="n" data-label="سعر الشراء">${T.money(t.buy.price)}</td>
+        <td class="n" data-label="متوسط البيع">${T.money(t.avgSell)}</td>
+        <td class="n" data-label="صافي الربح">${T.signedMoney(t.realized)}</td>
+        <td class="n" data-label="العائد">${T.signedPct(t.ret)}</td></tr>`).join("") + `</tbody></table></div>`
+      : `<div class="mini-empty">لم تُغلق أي صفقة بعد.</div>`;
+
+    app.querySelectorAll("tr[data-href]").forEach((r) => r.addEventListener("click", (e) => { if (!e.target.closest("a")) location.href = r.dataset.href; }));
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>إعداد سجل الصفقات</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&family=IBM+Plex+Mono&display=swap">
+<style>
+/* إعداد السجل: بطاقة واحدة في المنتصف بألوان سجل الصفقات */
+:root {
+  --bg: #F2EFE7; --panel: #FFFDF8; --ink: #16202A; --muted: #686C72; --rule: #DDD6C6;
+  --brand: #12352F; --brand-ink: #F4EFE3; --brass: #9C7A3C; --weak: #B0372D; --ok: #A9792A; --strong: #1C7A4E;
+  --field: #F8F5EE;
+  --display: "Tajawal", "Saudi", Tahoma, Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #101419; --panel: #171D24; --ink: #ECE7DB; --muted: #969BA3; --rule: #2B333D;
+  --brand: #D2B06A; --brand-ink: #16202A; --brass: #D2B06A; --weak: #EE7768; --ok: #D9B86F; --strong: #55C28F; --field: #1E252E;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #101419; --panel: #171D24; --ink: #ECE7DB; --muted: #969BA3; --rule: #2B333D;
+  --brand: #D2B06A; --brand-ink: #16202A; --brass: #D2B06A; --weak: #EE7768; --ok: #D9B86F; --strong: #55C28F; --field: #1E252E;
+  color-scheme: dark; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--display); font-size: 16px; line-height: 1.7; margin: 0; }
+.wrap { max-width: 460px; margin: 0 auto; padding-block: 28px 48px; padding-inline: 16px; display: grid; gap: 18px; }
+.top { display: flex; align-items: center; gap: 12px; color: var(--ink); }
+.t1 { font-weight: 700; font-size: 19px; line-height: 1.2; }
+.t2 { color: var(--muted); font-size: 13.5px; }
+.panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 22px 20px; display: grid; gap: 10px; }
+h1 { font-size: 22px; line-height: 1.35; margin: 0; text-wrap: balance; }
+.lead { margin: 0 0 6px; color: var(--muted); font-size: 14.5px; }
+label { font-weight: 700; font-size: 14px; margin-top: 4px; }
+input[type="password"] { font: inherit; min-height: 48px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--rule); background: var(--field); color: var(--ink); }
+input:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.meter { height: 6px; background: var(--field); border-radius: 4px; overflow: hidden; }
+.meter span { display: block; height: 100%; inline-size: 0; background: var(--weak); transition: inline-size .2s; }
+.meter span[data-level="ok"] { background: var(--ok); }
+.meter span[data-level="strong"] { background: var(--strong); }
+@media (prefers-reduced-motion: reduce) { .meter span { transition: none; } }
+.hint { margin: 0; color: var(--muted); font-size: 13px; }
+.err { margin: 0; color: var(--weak); font-size: 14px; min-height: 1.4em; }
+button { font: inherit; font-weight: 700; min-height: 48px; border: 0; border-radius: 10px; background: var(--brand); color: var(--brand-ink); cursor: pointer; }
+button:disabled { opacity: .6; cursor: progress; }
+.note { margin: 6px 0 0; padding-top: 12px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 13px; }
+textarea { font-family: var(--mono); font-size: 12.5px; line-height: 1.5; width: 100%; box-sizing: border-box; padding: 12px; border-radius: 10px; border: 1px solid var(--rule); background: var(--field); color: var(--ink); resize: vertical; word-break: break-all; }
+</style>
+</head>
+<body>
+<div class="wrap" dir="rtl" lang="ar">
+  <header class="top">
+    <svg width="34" height="34" viewBox="0 0 38 38" aria-hidden="true"><rect x="1" y="1" width="36" height="36" rx="10" fill="none" stroke="currentColor" stroke-opacity=".35"/><path d="M30 26 L23 19 L18 23 L8 12" fill="none" stroke="var(--brass)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="12" r="2.6" fill="var(--brass)"/></svg>
+    <div><div class="t1">سجل الصفقات</div><div class="t2">إعداد كلمة مرور الصفحة المنشورة</div></div>
+  </header>
+
+  <form class="panel" id="f" autocomplete="off">
+    <h1>اختر كلمة مرور السجل</h1>
+    <p class="lead">تُستخدم لفتح صفحة صفقاتك على الويب. تبقى على جهازك فقط: يُنشأ هنا مفتاح التشفير ويُقفل بها، ولا يُرسل منها شيء إلى أي مكان.</p>
+    <input type="text" name="username" value="trading-journal" autocomplete="username" hidden>
+    <label for="p1">كلمة المرور</label>
+    <input type="password" id="p1" autocomplete="new-password" minlength="12" required>
+    <div class="meter" aria-hidden="true"><span id="bar"></span></div>
+    <p class="hint" id="hint">12 حرفاً على الأقل. الأقوى: عبارة من 4 كلمات أو أكثر لا تستخدمها في مكان آخر.</p>
+    <label for="p2">أعد كتابتها</label>
+    <input type="password" id="p2" autocomplete="new-password" required>
+    <p class="err" id="err" role="alert"></p>
+    <button type="submit" id="go">إنشاء رمز الإعداد</button>
+    <p class="note">احفظ كلمة المرور في مدير كلمات المرور. إن نسيتها لا يمكن استعادتها، ويُعاد الإعداد بكلمة جديدة.</p>
+  </form>
+
+  <section class="panel" id="out" hidden>
+    <h1>تم إنشاء الرمز</h1>
+    <p class="lead">انسخ الرمز وأرسله لـ Claude في المحادثة. الرمز نفسه مشفّر بكلمة مرورك، فلا يكشف شيئاً ولا يفتح السجل وحده.</p>
+    <textarea id="code" readonly rows="7" dir="ltr" spellcheck="false"></textarea>
+    <button type="button" id="copy">نسخ الرمز</button>
+    <p class="hint" id="copied" role="status"></p>
+  </section>
+</div>
+<script>
+(function () {
+  const te = (t) => new TextEncoder().encode(t);
+  const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  const ITER = 600000;
+  const $ = (id) => document.getElementById(id);
+
+  function score(pw) {
+    let s = Math.min(pw.length, 24) / 24;
+    const kinds = [/[a-z]/, /[A-Z]/, /\d/, /[^\w\s]/, /[؀-ۿ]/, /\s/].filter((r) => r.test(pw)).length;
+    return Math.min(1, s * 0.75 + kinds * 0.08);
+  }
+  $("p1").addEventListener("input", () => {
+    const v = $("p1").value, s = score(v);
+    $("bar").style.inlineSize = (v ? Math.max(6, s * 100) : 0) + "%";
+    $("bar").dataset.level = v.length < 12 ? "weak" : s < 0.65 ? "ok" : "strong";
+  });
+
+  $("f").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const a = $("p1").value, b = $("p2").value, err = $("err"), go = $("go");
+    err.textContent = "";
+    if (a.length < 12) { err.textContent = "كلمة المرور أقصر من 12 حرفاً."; return; }
+    if (a !== b) { err.textContent = "الكلمتان غير متطابقتين. أعد كتابة الثانية."; return; }
+    if (!(window.crypto && crypto.subtle)) { err.textContent = "هذا المتصفح لا يدعم التشفير هنا. جرّب Chrome أو Safari محدّثاً."; return; }
+    go.disabled = true; go.textContent = "جارٍ الإنشاء…";
+    try {
+      const pair = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+      const pub = await crypto.subtle.exportKey("spki", pair.publicKey);
+      const pkcs8 = await crypto.subtle.exportKey("pkcs8", pair.privateKey);
+      const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+      const base = await crypto.subtle.importKey("raw", te(a), "PBKDF2", false, ["deriveKey"]);
+      const kek = await crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: ITER, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt"]);
+      const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, kek, pkcs8));
+      const wrapped = new Uint8Array(iv.length + ct.length); wrapped.set(iv); wrapped.set(ct, iv.length);
+      const key = { v: 2, kdf: "PBKDF2-SHA256", iter: ITER, salt: b64(salt), pub: b64(pub), wrapped: b64(wrapped) };
+      $("code").value = "TJKEY2." + btoa(JSON.stringify(key));
+      $("p1").value = ""; $("p2").value = "";
+      $("f").hidden = true; $("out").hidden = false; $("code").focus(); $("code").select();
+    } catch (x) {
+      err.textContent = "تعذّر إنشاء الرمز. حدّث الصفحة وحاول مرة أخرى.";
+      go.disabled = false; go.textContent = "إنشاء رمز الإعداد";
+    }
+  });
+
+  $("copy").addEventListener("click", async () => {
+    const c = $("code");
+    try { await navigator.clipboard.writeText(c.value); $("copied").textContent = "نُسخ الرمز."; }
+    catch (e) { c.focus(); c.select(); $("copied").textContent = "الرمز محدد. انسخه من قائمة النسخ في جهازك."; }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>كل الصفقات</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="masthead" data-masthead></header>
+<main id="app"><p class="muted">جارٍ التحميل…</p></main>
+<footer class="foot" data-foot></footer>
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  const T = window.TJ;
+  T.chrome("trades");
+  T.load(({ meta, trades }) => {
+    const app = document.getElementById("app");
+    if (!trades.length) {
+      app.innerHTML = `<div class="page-head"><h1>كل الصفقات</h1></div>` + T.emptyState("السجل فارغ", "كل صفقة تُسجَّل تظهر هنا مع تفاصيلها وربحها أو خسارتها.");
+      return;
+    }
+    const months = [...new Set(trades.map((t) => t.buy.date.slice(0, 7)))].sort().reverse();
+    const symbols = [...new Map(trades.map((t) => [t.display, t.display])).entries()].sort((a, b) => a[1].localeCompare(b[1], "ar"));
+    const mf = new Intl.DateTimeFormat("ar-u-nu-latn-ca-gregory", { month: "long", year: "numeric" });
+
+    app.innerHTML = `
+      <div class="page-head"><h1>كل الصفقات</h1><div class="updated">${T.num(trades.length)} صفقة</div></div>
+      <div class="filters">
+        <div class="chips" role="group" aria-label="الحالة">
+          <button data-st="all" aria-pressed="true">الكل</button>
+          <button data-st="open" aria-pressed="false">مفتوحة</button>
+          <button data-st="win" aria-pressed="false">رابحة</button>
+          <button data-st="lose" aria-pressed="false">خاسرة</button>
+        </div>
+        <select id="sym" aria-label="السهم"><option value="">كل الأسهم</option>${symbols.map(([s, n]) => `<option value="${T.esc(s)}">${T.esc(n)}</option>`).join("")}</select>
+        <select id="mon" aria-label="شهر الشراء"><option value="">كل الأشهر</option>${months.map((m) => `<option value="${m}">${mf.format(new Date(+m.slice(0, 4), +m.slice(5) - 1, 1))}</option>`).join("")}</select>
+        <input type="search" id="q" placeholder="ابحث برقم الصفقة أو الملاحظات" aria-label="بحث">
+      </div>
+      <div class="card"><div class="table-wrap" id="list"></div><div class="totals-bar" id="totals"></div></div>`;
+
+    const state = { st: "all", sym: "", mon: "", q: "" };
+    function render() {
+      const q = state.q.trim();
+      const rows = trades.filter((t) =>
+        (state.st === "all" || (state.st === "open" ? t.status !== "closed" : t.outcome === state.st)) &&
+        (!state.sym || t.display === state.sym) && (!state.mon || t.buy.date.startsWith(state.mon)) &&
+        (!q || [t.id, t.symbol, t.display, t.notes].some((x) => String(x || "").includes(q))));
+      document.getElementById("list").innerHTML = rows.length ? `<table class="responsive"><thead><tr>
+          <th>السهم</th><th>رقم</th><th>تاريخ الشراء</th><th class="n">الكمية</th><th class="n">سعر الشراء</th><th class="n">متوسط البيع</th>
+          <th class="n">صافي الربح</th><th class="n">العائد</th><th class="n">المدة</th></tr></thead><tbody>` +
+        rows.map((t) => `<tr class="link" data-href="${T.tradeHref(t.id)}">
+          <td class="head-cell"><div class="hc">${T.symCell(t)}${T.statusPill(t)}</div></td>
+          <td class="tid hide-sm">${T.num(T.esc(t.id))}</td>
+          <td data-label="تاريخ الشراء">${T.fmtShort(t.buy.date)}</td>
+          <td class="n" data-label="الكمية">${T.fmtQty(t.buy.qty)}${t.status === "partial" ? ` <span class="muted" style="font-size:12px">(متبقٍ ${T.fmtQty(t.remaining)})</span>` : ""}</td>
+          <td class="n" data-label="سعر الشراء">${T.money(t.buy.price)}</td>
+          <td class="n" data-label="متوسط البيع">${t.avgSell == null ? "—" : T.money(t.avgSell)}</td>
+          <td class="n" data-label="صافي الربح">${t.sells.length ? T.signedMoney(t.realized) : "—"}</td>
+          <td class="n" data-label="العائد">${T.signedPct(t.ret)}</td>
+          <td class="n" data-label="المدة">${T.dayWord(t.holdDays)}</td></tr>`).join("") + `</tbody></table>`
+        : `<div class="mini-empty" style="padding:24px 18px">لا توجد صفقات مطابقة.</div>`;
+      const pnl = rows.reduce((a, t) => a + t.realized, 0), fees = rows.reduce((a, t) => a + t.totalFees, 0);
+      document.getElementById("totals").innerHTML = `<span>المعروض: <b>${T.num(rows.length)}</b></span><span>صافي الربح المحقق: <b>${T.signedMoney(pnl)}</b> ${T.cur}</span><span>العمولات: <b>${T.money(fees)}</b> ${T.cur}</span>`;
+      app.querySelectorAll("tr[data-href]").forEach((r) => r.addEventListener("click", () => (location.href = r.dataset.href)));
+    }
+    app.querySelectorAll(".chips button").forEach((b) => b.addEventListener("click", () => {
+      app.querySelectorAll(".chips button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+      state.st = b.dataset.st; render();
+    }));
+    document.getElementById("sym").addEventListener("change", (e) => { state.sym = e.target.value; render(); });
+    document.getElementById("mon").addEventListener("change", (e) => { state.mon = e.target.value; render(); });
+    document.getElementById("q").addEventListener("input", (e) => { state.q = e.target.value; render(); });
+    render();
+  });
+})();
+</script>
+</body>
+</html>

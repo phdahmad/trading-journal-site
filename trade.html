@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>تفاصيل الصفقة</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="masthead" data-masthead></header>
+<main id="app"><p class="muted">جارٍ التحميل…</p></main>
+<footer class="foot" data-foot></footer>
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  const T = window.TJ;
+  T.chrome("trades");
+  T.load(({ trades }) => {
+    const app = document.getElementById("app");
+    const id = new URLSearchParams(location.search).get("id");
+    const t = trades.find((x) => x.id === id);
+    const back = `<a class="back" href="${T.pageHref("trades.html")}"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 L5 8 L10 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>كل الصفقات</a>`;
+    if (!t) { app.innerHTML = back + `<div class="card empty"><h2>الصفقة غير موجودة</h2><p>تأكد من رقم الصفقة في الرابط.</p></div>`; return; }
+    document.title = `${t.display} · ${t.id}`;
+
+    const cell = (label, v) => `<div><span class="lbl">${label}</span><b>${v}</b></div>`;
+    const k = (label, value, foot) => `<div class="card kpi"><div class="kpi-label">${label}</div><div class="kpi-value">${value}</div>${foot ? `<div class="kpi-foot">${foot}</div>` : ""}</div>`;
+    const when = (d, tm) => `${T.fmtDate(d)}${tm ? " · " + T.num(T.esc(tm)) : ""}`;
+
+    const legs = [`<div class="leg"><div class="leg-dot buy">شراء</div><div>
+        <div class="leg-title">أمر الشراء<span class="when">${when(t.buy.date, t.buy.time)}</span></div>
+        <div class="leg-grid">
+          ${cell("الكمية", T.fmtQty(t.buy.qty))}${cell("سعر التنفيذ", T.money(t.buy.price))}
+          ${cell("العمولة", T.money(t.buyFees))}${cell("التكلفة الكلية", T.money(t.cost) + " " + T.cur)}
+          ${cell(t.opt ? "تكلفة العقد شاملة العمولة" : "تكلفة السهم شاملة العمولة", T.money(t.unitCost))}${t.opt ? cell("المضاعف", T.num(t.mult) + " سهم لكل عقد") : ""}
+        </div></div></div>`]
+      .concat(t.sells.map((s, i) => `<div class="leg"><div class="leg-dot sell">بيع</div><div>
+        <div class="leg-title">${t.sells.length > 1 ? `دفعة بيع ${T.num(i + 1)}` : "أمر البيع"}<span class="when">${when(s.date, s.time)}</span></div>
+        <div class="leg-grid">
+          ${cell("الكمية", T.fmtQty(s.qty))}${cell("سعر التنفيذ", T.money(s.price))}
+          ${cell("العمولة", T.money(s.fees))}${cell("صافي المبلغ", T.money(s.proceeds) + " " + T.cur)}
+          ${cell("ربح الدفعة", T.signedMoney(s.pnl))}
+        </div></div></div>`));
+
+    const receipts = (t.receipts || []).map((r) => {
+      const src = typeof r === "string" ? r : r.path, cap = typeof r === "string" ? "" : r.label || "";
+      return `<figure style="margin:0"><a href="#" target="_blank" rel="noopener"><img data-receipt="${T.esc(src)}" alt="${T.esc(cap || "صورة الأمر")}"></a>${cap ? `<figcaption>${T.esc(cap)}</figcaption>` : ""}</figure>`;
+    }).join("");
+
+    app.innerHTML = back + `
+      <div class="page-head"><div class="detail-head"><h1>${T.esc(t.display)}</h1><span class="code">${t.opt ? T.esc(t.sub) : T.num(T.esc(t.symbol))} · ${T.num(T.esc(t.id))}</span>${T.statusPill(t)}</div></div>
+      <section class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px">
+        ${k("صافي الربح المحقق", t.sells.length ? T.signedMoney(t.realized) : "—", t.sells.length ? "بعد عمولات الشراء والبيع" : "لم يُبع شيء بعد")}
+        ${k("العائد", T.signedPct(t.ret), t.status === "partial" ? "على الكمية المباعة فقط" : "")}
+        ${k(t.status === "closed" ? "مدة الاحتفاظ" : "مفتوحة منذ", T.dayWord(t.holdDays), "")}
+        ${k("إجمالي العمولات", T.money(t.totalFees), T.cur)}
+      </section>
+      <section class="grid-2">
+        <div class="card"><div class="card-head"><h2>مسار الصفقة</h2>${t.remaining > 0 ? `<span class="hint">متبقٍ ${T.fmtQty(t.remaining)} ${t.unitWord}</span>` : ""}</div><div class="card-body legs">${legs.join("")}</div></div>
+        <div class="stack">
+          ${t.notes ? `<div class="card"><div class="card-head"><h2>ملاحظات</h2></div><div class="card-body notes">${T.esc(t.notes)}</div></div>` : ""}
+          <div class="card"><div class="card-head"><h2>صور الأوامر</h2></div><div class="card-body">${receipts ? `<div class="receipts">${receipts}</div>` : `<div class="mini-empty">لا توجد صور محفوظة لهذه الصفقة.</div>`}</div></div>
+        </div>
+      </section>`;
+    T.hydrateReceipts(app);
+  });
+})();
+</script>
+</body>
+</html>
