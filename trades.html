@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>كل الصفقات</title>
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/style.css?v=c06be639">
 </head>
 <body>
 <header class="masthead" data-masthead></header>
 <main id="app"><p class="muted">جارٍ التحميل…</p></main>
 <footer class="foot" data-foot></footer>
-<script src="assets/app.js"></script>
+<script src="assets/app.js?v=c06be639"></script>
 <script>
 (function () {
   const T = window.TJ;
@@ -65,7 +65,7 @@
           <td class="n" data-label="المدة">${T.dayWord(t.holdDays)}</td></tr>`).join("") + `</tbody></table>`
         : `<div class="mini-empty" style="padding:24px 18px">لا توجد صفقات مطابقة.</div>`;
       const pnl = rows.reduce((a, t) => a + t.realized, 0), fees = rows.reduce((a, t) => a + t.totalFees, 0);
-      document.getElementById("totals").innerHTML = `<span>المعروض: <b>${T.num(rows.length)}</b></span><span>صافي الربح المحقق: <b>${T.signedMoney(pnl)}</b> ${T.cur}</span><span>العمولات: <b>${T.money(fees)}</b> ${T.cur}</span>`;
+      document.getElementById("totals").innerHTML = `<span>إجمالي الصفقات المعروضة أعلاه: <b>${T.num(rows.length)}</b></span><span>صافي الربح المحقق: <b>${T.signedMoney(pnl)}</b> ${T.cur}</span><span>العمولات: <b>${T.money(fees)}</b> ${T.cur}</span>`;
       app.querySelectorAll("tr[data-href]").forEach((r) => r.addEventListener("click", () => (location.href = r.dataset.href)));
     }
     app.querySelectorAll(".chips button").forEach((b) => b.addEventListener("click", () => {
