@@ -69,9 +69,9 @@
     const toExpiry = opt ? Math.round((parseDate(opt.expiry) - parseDate(todayISO())) / 86400000) : null;
     const display = t.name || (opt ? `${opt.underlying} ${opt.strike} ${opt.right === "P" ? "Put" : "Call"}` : t.symbol);
     let sub = t.symbol;
-    if (opt) sub = status === "closed" ? `عقد خيار · انتهاء ${fmtShort(opt.expiry)}`
+    if (opt) sub = status === "closed" ? `انتهاء ${fmtShort(opt.expiry)}`
       : toExpiry < 0 ? "تجاوز تاريخ الانتهاء — يحتاج تسجيل الإغلاق"
-      : toExpiry === 0 ? "عقد خيار · ينتهي اليوم" : `عقد خيار · ينتهي ${fmtShort(opt.expiry)} (بعد ${dayWord(toExpiry)})`;
+      : toExpiry === 0 ? "ينتهي اليوم" : `ينتهي ${fmtShort(opt.expiry)} (بعد ${dayWord(toExpiry)})`;
     return {
       ...t, mult, opt, toExpiry, display, sub, unitWord: opt ? "عقد" : "سهم", cost, unitCost, buyFees, sells, soldQty, remaining, realized, soldBasis, sellFees,
       totalFees: buyFees + sellFees, avgSell, status, lastSell,
@@ -207,7 +207,8 @@
     if (t.status === "partial") return `<span class="pill partial">بيع جزئي</span>`;
     return { win: `<span class="pill win">رابحة</span>`, lose: `<span class="pill lose">خاسرة</span>`, even: `<span class="pill even">تعادل</span>` }[t.outcome];
   }
-  const symCell = (t) => `<div class="sym">${esc(t.display)}<small${t.opt && t.toExpiry != null && t.toExpiry <= 3 && t.status !== "closed" ? ' class="warn"' : ""}>${t.opt ? esc(t.sub) : num(esc(t.sub))}</small></div>`;
+  const kindTag = (t) => t.opt ? `<span class="kind option">عقد خيار</span>` : `<span class="kind stock">سهم</span>`;
+  const symCell = (t) => `<div class="sym"><span class="sym-name">${esc(t.display)} ${kindTag(t)}</span><small${t.opt && t.toExpiry != null && t.toExpiry <= 3 && t.status !== "closed" ? ' class="warn"' : ""}>${t.opt ? esc(t.sub) : num(esc(t.sub))}</small></div>`;
   const tradeHref = (id) => `trade.html?id=${encodeURIComponent(id)}${isDemo ? "&demo" : ""}`;
   const pageHref = (p) => p + (isDemo ? "?demo" : "");
 
@@ -241,7 +242,7 @@
   const KEY_SLOT = "tj-key";
   const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
   const toB64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
-  let aesKey = null;
+  let aesKey = null, buildId = "";
 
   const te = (t) => new TextEncoder().encode(t);
   async function decryptBytes(key, bytes) {
@@ -314,7 +315,7 @@
       try {
         let url = path;
         if (aesKey) {
-          const res = await fetch(path + ".enc"); if (!res.ok) throw 0;
+          const res = await fetch(path + ".enc?b=" + encodeURIComponent(buildId), { cache: "no-store" }); if (!res.ok) throw 0;
           url = URL.createObjectURL(new Blob([await decryptBytes(aesKey, new Uint8Array(await res.arrayBuffer()))], { type: "image/jpeg" }));
         }
         img.src = url; if (link) link.href = url;
@@ -334,8 +335,9 @@
       cb({ meta: J.meta || {}, trades, sum: summarize(trades) });
     };
     const s = document.createElement("script");
-    s.src = isDemo ? "data/demo.js" : "data/trades.js";
+    s.src = (isDemo ? "data/demo.js" : "data/trades.js") + "?t=" + Date.now();
     s.onload = () => {
+      if (!isDemo && window.JOURNAL_ENC) buildId = window.JOURNAL_ENC.epk.slice(-16);
       if (!isDemo && window.JOURNAL_ENC && !window.JOURNAL) return unlock(window.JOURNAL_ENC, (J) => { window.JOURNAL = J; finish(); });
       finish();
     };
@@ -343,6 +345,6 @@
     document.head.appendChild(s);
   }
 
-  window.TJ = { load, chrome, compute, summarize, equityChart, monthlyChart, statusPill, symCell, tradeHref, pageHref, hydrateReceipts,
+  window.TJ = { load, chrome, compute, summarize, equityChart, monthlyChart, statusPill, symCell, tradeHref, pageHref, hydrateReceipts, kindTag,
     money, signedMoney, pct, signedPct, fmtDate, fmtShort, fmtQty, num, esc, tone, dayWord, emptyState, nf2, isDemo };
 })();

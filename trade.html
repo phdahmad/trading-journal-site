@@ -49,7 +49,7 @@
     }).join("");
 
     app.innerHTML = back + `
-      <div class="page-head"><div class="detail-head"><h1>${T.esc(t.display)}</h1><span class="code">${t.opt ? T.esc(t.sub) : T.num(T.esc(t.symbol))} · ${T.num(T.esc(t.id))}</span>${T.statusPill(t)}</div></div>
+      <div class="page-head"><div class="detail-head"><h1>${T.esc(t.display)}</h1>${T.kindTag(t)}<span class="code">${t.opt ? T.esc(t.sub) : T.num(T.esc(t.symbol))} · ${T.num(T.esc(t.id))}</span>${T.statusPill(t)}</div></div>
       <section class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px">
         ${k("صافي الربح المحقق", t.sells.length ? T.signedMoney(t.realized) : "—", t.sells.length ? "بعد عمولات الشراء والبيع" : "لم يُبع شيء بعد")}
         ${k("العائد", T.signedPct(t.ret), t.status === "partial" ? "على الكمية المباعة فقط" : "")}
