@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>تفاصيل الصفقة</title>
-<link rel="stylesheet" href="assets/style.css?v=5799d97f">
+<link rel="stylesheet" href="assets/style.css?v=e5f3cde0">
 </head>
 <body>
 <header class="masthead" data-masthead></header>
 <main id="app"><p class="muted">جارٍ التحميل…</p></main>
 <footer class="foot" data-foot></footer>
-<script src="assets/app.js?v=5799d97f"></script>
+<script src="assets/app.js?v=e5f3cde0"></script>
 <script>
 (function () {
   const T = window.TJ;
@@ -28,13 +28,22 @@
     const k = (label, value, foot) => `<div class="card kpi"><div class="kpi-label">${label}</div><div class="kpi-value">${value}</div>${foot ? `<div class="kpi-foot">${foot}</div>` : ""}</div>`;
     const when = (d, tm) => `${T.fmtDate(d)}${tm ? " · " + T.num(T.esc(tm)) : ""}`;
 
-    const legs = [`<div class="leg"><div class="leg-dot buy">شراء</div><div>
-        <div class="leg-title">أمر الشراء<span class="when">${when(t.buy.date, t.buy.time)}</span></div>
+    const multi = t.buys.length > 1;
+    const buyLegs = t.buys.map((x, i) => `<div class="leg"><div class="leg-dot buy">شراء</div><div>
+        <div class="leg-title">${multi ? (i === 0 ? "الشراء الأول" : `تعزيز ${T.num(i)}`) : "أمر الشراء"}<span class="when">${when(x.date, x.time)}</span></div>
         <div class="leg-grid">
-          ${cell("الكمية", T.fmtQty(t.buy.qty))}${cell("سعر التنفيذ", T.money(t.buy.price))}
-          ${cell("العمولة", T.money(t.buyFees))}${cell("التكلفة الكلية", T.money(t.cost) + " " + T.cur)}
-          ${cell(t.opt ? "تكلفة العقد شاملة العمولة" : "تكلفة السهم شاملة العمولة", T.money(t.unitCost))}${t.opt ? cell("المضاعف", T.num(t.mult) + " سهم لكل عقد") : ""}
-        </div></div></div>`]
+          ${cell("الكمية", T.fmtQty(x.qty))}${cell("سعر التنفيذ", T.money(x.price))}
+          ${cell("العمولة", T.money(+x.fees || 0))}${cell("التكلفة", T.money(x.qty * x.price * t.mult + (+x.fees || 0)) + " " + T.cur)}
+          ${multi ? "" : cell(t.opt ? "تكلفة العقد شاملة العمولة" : "تكلفة السهم شاملة العمولة", T.money(t.unitCost))}${!multi && t.opt ? cell("المضاعف", T.num(t.mult) + " سهم لكل عقد") : ""}
+        </div></div></div>`);
+    if (multi) buyLegs.push(`<div class="leg"><div class="leg-dot buy">المتوسط</div><div>
+        <div class="leg-title">إجمالي المركز</div>
+        <div class="leg-grid">
+          ${cell("الكمية", T.fmtQty(t.buy.qty))}${cell("متوسط سعر الشراء", T.money(t.buy.price))}
+          ${cell("العمولات", T.money(t.buyFees))}${cell("التكلفة الكلية", T.money(t.cost) + " " + T.cur)}
+          ${cell(t.opt ? "تكلفة العقد شاملة العمولة" : "تكلفة السهم شاملة العمولة", T.money(t.unitCost))}
+        </div></div></div>`);
+    const legs = buyLegs
       .concat(t.sells.map((s, i) => `<div class="leg"><div class="leg-dot sell">بيع</div><div>
         <div class="leg-title">${t.sells.length > 1 ? `دفعة بيع ${T.num(i + 1)}` : "أمر البيع"}<span class="when">${when(s.date, s.time)}</span></div>
         <div class="leg-grid">

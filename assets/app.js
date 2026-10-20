@@ -43,7 +43,18 @@
    * تكلفة السهم الواحد = (الكمية × سعر الشراء + عمولة الشراء) ÷ الكمية
    * صافي بيع الدفعة   = الكمية المباعة × سعر البيع − عمولة البيع
    * ربح الدفعة         = صافي بيع الدفعة − الكمية المباعة × تكلفة السهم الواحد */
-  function compute(t) {
+  // صفقة عُززت على دفعات: buys[] هي الأصل، و buy إجمالي مشتق منها (الكمية، متوسط السعر، العمولات)
+  function normBuys(t) {
+    if (!Array.isArray(t.buys) || !t.buys.length) return { ...t, buys: [t.buy] };
+    const buys = t.buys.slice().sort((x, y) => (x.date + (x.time || "")).localeCompare(y.date + (y.time || "")));
+    const qty = buys.reduce((a, x) => a + x.qty, 0);
+    const buy = { date: buys[0].date, time: buys[0].time, qty,
+      price: buys.reduce((a, x) => a + x.qty * x.price, 0) / qty,
+      fees: buys.reduce((a, x) => a + (+x.fees || 0), 0) };
+    return { ...t, buys, buy };
+  }
+  function compute(t0) {
+    const t = normBuys(t0);
     const b = t.buy;
     const mult = +t.multiplier || 1;
     const buyFees = +b.fees || 0;
