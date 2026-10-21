@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>تفاصيل الصفقة</title>
-<link rel="stylesheet" href="assets/style.css?v=8a4dcbc7">
+<link rel="stylesheet" href="assets/style.css?v=8ddbed7e">
 </head>
 <body>
 <header class="masthead" data-masthead></header>
 <main id="app"><p class="muted">جارٍ التحميل…</p></main>
 <footer class="foot" data-foot></footer>
-<script src="assets/app.js?v=8a4dcbc7"></script>
+<script src="assets/app.js?v=8ddbed7e"></script>
 <script>
 (function () {
   const T = window.TJ;
@@ -68,7 +68,7 @@
       <section class="grid-2">
         <div class="card"><div class="card-head"><h2>مسار الصفقة</h2>${t.remaining > 0 ? `<span class="hint">متبقٍ ${T.fmtQty(t.remaining)} ${t.unitWord}</span>` : ""}</div><div class="card-body legs">${legs.join("")}</div></div>
         <div class="stack">
-          ${t.purifyRate && t.realized > 0.004 ? `<div class="card"><div class="card-head"><h2>التطهير</h2><a class="hint" href="${T.pageHref("purify.html")}">سجل التطهير</a></div><div class="card-body"><div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline"><span class="muted">${T.num(T.nf2.format(t.purifyRate * 100).replace(/\.00$/, "") + "%")} من ربح ${T.money(t.realized)}</span><b style="font-size:20px;font-family:var(--display)">${T.money(t.purify)} ${T.cur}</b></div></div></div>` : ""}
+          ${t.purifyRate && t.realized > 0.004 ? `<div class="card"><div class="card-head"><h2>التطهير</h2><a class="hint" href="${T.pageHref("purify.html")}">سجل التطهير</a></div><div class="card-body"><div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline"><span class="muted">${T.num(T.nf2.format(t.purifyRate * 100).replace(/\.00$/, "") + "%")} من ربح ${T.money(t.realized)}</span><b style="font-size:20px;font-family:var(--display)">${T.money(t.purify)} ${T.cur}</b></div><div style="margin-top:8px">${t.purifyState === "paid" ? `<span class="pill win">مُخرج</span>` : t.purifyState === "partial" ? `<span class="pill partial">متبقٍ ${T.money(t.purifyLeft)}</span>` : `<span class="pill open">لم يُخرج</span>`}</div></div></div>` : ""}
           ${t.notes ? `<div class="card"><div class="card-head"><h2>ملاحظات</h2></div><div class="card-body notes">${T.esc(t.notes)}</div></div>` : ""}
           <div class="card"><div class="card-head"><h2>صور الأوامر</h2></div><div class="card-body">${receipts ? `<div class="receipts">${receipts}</div>` : `<div class="mini-empty">لا توجد صور محفوظة لهذه الصفقة.</div>`}</div></div>
         </div>

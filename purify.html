@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>التطهير</title>
-<link rel="stylesheet" href="assets/style.css?v=8a4dcbc7">
+<link rel="stylesheet" href="assets/style.css?v=8ddbed7e">
 <style>
   .pur-hero { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; margin-bottom: 16px; }
   .pur-main { padding: 22px; }
@@ -26,7 +26,7 @@
 <header class="masthead" data-masthead></header>
 <main id="app"><p class="muted">جارٍ التحميل…</p></main>
 <footer class="foot" data-foot></footer>
-<script src="assets/app.js?v=8a4dcbc7"></script>
+<script src="assets/app.js?v=8ddbed7e"></script>
 <script>
 (function () {
   const T = window.TJ;
@@ -38,7 +38,11 @@
       app.innerHTML = `<div class="page-head"><h1>التطهير</h1></div><div class="card empty"><h2>لم تُحدد نسبة التطهير بعد</h2><p>أخبر Claude بالنسبة التي تريد إخراجها من كل ربح، وتظهر هنا تلقائياً.</p></div>`;
       return;
     }
-    const wins = trades.filter((t) => t.purify > 0.004).sort((a, b) => String(b.lastSell || b.buy.date).localeCompare(String(a.lastSell || a.buy.date)));
+    const order = { unpaid: 0, partial: 1, paid: 2 };
+    const wins = trades.filter((t) => t.purify > 0.004).sort((a, b) => (order[a.purifyState] - order[b.purifyState]) || String(b.lastSell || b.buy.date).localeCompare(String(a.lastSell || a.buy.date)));
+    const pending = wins.filter((t) => t.purifyState !== "paid");
+    const stateCell = (t) => t.purifyState === "paid" ? `<span class="pill win">مُخرج</span>`
+      : t.purifyState === "partial" ? `<span class="pill partial">متبقٍ ${T.money(t.purifyLeft)}</span>` : `<span class="pill open">لم يُخرج</span>`;
     const left = P.left, done = left <= 0.004;
     const pctPaid = P.due > 0 ? Math.min(100, (P.paid / P.due) * 100) : 0;
     const k = (label, value, foot) => `<div class="card kpi"><div class="kpi-label">${label}</div><div class="kpi-value">${value}</div>${foot ? `<div class="kpi-foot">${foot}</div>` : ""}</div>`;
@@ -60,8 +64,15 @@
 
       <section class="grid-2">
         <div class="card">
-          <div class="card-head"><h2>المستحق من كل صفقة</h2><span class="hint">الأحدث أولاً</span></div>
-          <div class="card-body table-wrap" id="due"></div>
+          <div class="card-head"><h2>المستحق من كل صفقة</h2><span class="hint">${pending.length ? `${T.num(pending.length)} ${pending.length === 1 ? "صفقة" : "صفقات"} بانتظار الإخراج` : "كل الصفقات مُخرج تطهيرها"}</span></div>
+          <div class="card-body">
+            <div class="chips" role="group" aria-label="حالة الإخراج" style="display:inline-flex;margin-bottom:10px">
+              <button data-f="pending" aria-pressed="false">لم يُخرج</button>
+              <button data-f="paid" aria-pressed="false">مُخرج</button>
+              <button data-f="all" aria-pressed="false">الكل</button>
+            </div>
+            <div class="table-wrap" id="due"></div>
+          </div>
         </div>
         <div class="stack">
           <div class="card">
@@ -73,22 +84,32 @@
             <div class="card-body how">
               <p class="rule-note">${T.esc(P.basis || "")}</p>
               <p class="rule-note">الصفقات الخاسرة لا يُحسب عليها تطهير، ولا تُخصم من المستحق.</p>
+              <p class="rule-note">ما تُخرجه يُوزَّع على الصفقات بالأقدم أولاً، فتظهر حالة كل صفقة: مُخرج، أو متبقٍ جزء منه، أو لم يُخرج.</p>
               <p class="rule-note">عند الإخراج أرسل لـ Claude مثلاً: <code>أخرجت 100 دولار تطهير</code> فيُسجَّل وينقص من المتبقي.</p>
             </div>
           </div>
         </div>
       </section>`;
 
-    document.getElementById("due").innerHTML = wins.length ? `<table class="responsive"><thead><tr>
-        <th>الصفقة</th><th>تاريخ البيع</th><th class="n">الربح</th><th class="n">النسبة</th><th class="n">التطهير</th></tr></thead><tbody>` +
-      wins.map((t) => `<tr class="link" data-href="${T.tradeHref(t.id)}">
+    const renderDue = (f) => {
+    app.querySelectorAll("[data-f]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.f === f));
+    const rows = wins.filter((t) => f === "all" || (f === "paid" ? t.purifyState === "paid" : t.purifyState !== "paid"));
+    const sumLeft = rows.reduce((a, t) => a + t.purifyLeft, 0);
+    document.getElementById("due").innerHTML = rows.length ? `<table class="responsive"><thead><tr>
+        <th>الصفقة</th><th>تاريخ البيع</th><th class="n">الربح</th><th class="n">النسبة</th><th class="n">التطهير</th><th>الحالة</th></tr></thead><tbody>` +
+      rows.map((t) => `<tr class="link" data-href="${T.tradeHref(t.id)}">
         <td class="head-cell"><div class="hc">${T.symCell(t)}<span class="tid">${T.num(T.esc(t.id))}</span></div></td>
         <td data-label="تاريخ البيع">${T.fmtShort(t.lastSell)}</td>
         <td class="n" data-label="الربح">${T.signedMoney(t.realized)}</td>
         <td class="n" data-label="النسبة">${ratePct(t.purifyRate)}</td>
-        <td class="n" data-label="التطهير"><b>${T.money(t.purify)}</b></td></tr>`).join("") +
-      `</tbody><tfoot><tr><td colspan="2">الإجمالي</td><td class="n">${T.signedMoney(wins.reduce((a, t) => a + t.realized, 0))}</td><td></td><td class="n">${T.money(P.due)}</td></tr></tfoot></table>`
-      : `<div class="mini-empty">لا توجد صفقات رابحة بعد.</div>`;
+        <td class="n" data-label="التطهير"><b>${T.money(t.purify)}</b></td>
+        <td data-label="الحالة">${stateCell(t)}</td></tr>`).join("") +
+      `</tbody><tfoot><tr><td colspan="2">${f === "all" ? "الإجمالي" : f === "paid" ? "إجمالي المُخرج" : "إجمالي المتبقي"}</td><td class="n">${T.signedMoney(rows.reduce((a, t) => a + t.realized, 0))}</td><td></td><td class="n">${T.money(f === "pending" ? sumLeft : rows.reduce((a, t) => a + t.purify, 0))}</td><td></td></tr></tfoot></table>`
+      : `<div class="mini-empty">${f === "pending" ? "لا توجد صفقات بانتظار الإخراج. تقبّل الله." : f === "paid" ? "لم يُخرج تطهير أي صفقة بعد." : "لا توجد صفقات رابحة بعد."}</div>`;
+    app.querySelectorAll("#due tr[data-href]").forEach((r) => r.addEventListener("click", () => (location.href = r.dataset.href)));
+    };
+    app.querySelectorAll("[data-f]").forEach((b) => b.addEventListener("click", () => renderDue(b.dataset.f)));
+    renderDue(pending.length ? "pending" : "all");
 
     document.getElementById("paid").innerHTML = P.payments.length ? P.payments.map((x, i, a) =>
       `<div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:9px 0;${i < a.length - 1 ? "border-bottom:1px solid var(--rule)" : ""}">
@@ -96,7 +117,6 @@
         <b class="gain" style="white-space:nowrap">${T.money(+x.amount || 0)} ${T.cur}</b></div>`).join("")
       : `<div class="mini-empty">لم يُسجَّل أي إخراج بعد.</div>`;
 
-    app.querySelectorAll("tr[data-href]").forEach((r) => r.addEventListener("click", () => (location.href = r.dataset.href)));
   });
 })();
 </script>

@@ -353,6 +353,11 @@
       });
       const payments = (J.purification_payments || []).slice().sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
       const due = trades.reduce((a, t) => a + t.purify, 0), paid = payments.reduce((a, x) => a + (+x.amount || 0), 0);
+      // توزيع ما أُخرج على الصفقات بالأقدم أولاً، لمعرفة ما بقي على كل صفقة
+      let pool = paid;
+      trades.filter((t) => t.purify > 0.004).sort((a, b) => String(a.lastSell || a.buy.date).localeCompare(String(b.lastSell || b.buy.date)))
+        .forEach((t) => { const x = Math.min(pool, t.purify); pool -= x; t.purifyPaid = x; t.purifyLeft = t.purify - x;
+          t.purifyState = t.purifyLeft <= 0.004 ? "paid" : x > 0.004 ? "partial" : "unpaid"; });
       const purification = { rate: baseRate, basis: P.basis || "", payments, due, paid, left: due - paid };
       cb({ meta: J.meta || {}, trades, sum: summarize(trades), purification });
     };
