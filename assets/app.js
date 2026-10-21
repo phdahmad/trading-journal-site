@@ -234,6 +234,7 @@
         <nav class="nav" aria-label="التنقل">
           <a href="${pageHref("index.html")}" ${active === "home" ? 'aria-current="page"' : ""}>لوحة المتابعة</a>
           <a href="${pageHref("trades.html")}" ${active === "trades" ? 'aria-current="page"' : ""}>كل الصفقات</a>
+          <a href="${pageHref("purify.html")}" ${active === "purify" ? 'aria-current="page"' : ""}>التطهير</a>
           ${isDemo ? `<span class="demo-flag">بيانات تجريبية</span>` : ""}
         </nav></div>`;
     }
@@ -343,7 +344,17 @@
       window.TJ.cur = ({ USD: "دولار", SAR: "ر.س" })[(J.meta || {}).currency] || (J.meta || {}).currency || "";
       const trades = (J.trades || []).map(compute).sort((a, b) => (b.buy.date + (b.buy.time || "")).localeCompare(a.buy.date + (a.buy.time || "")));
       if (aesKey) { const n = document.querySelector(".nav"); if (n && !n.querySelector(".lock-out")) n.insertAdjacentHTML("beforeend", `<button class="lock-out" type="button">قفل</button>`), n.querySelector(".lock-out").addEventListener("click", lockOut); }
-      cb({ meta: J.meta || {}, trades, sum: summarize(trades) });
+      // التطهير: نسبة من ربح كل صفقة رابحة على حدة (لا تُخصم الخسائر)، ويمكن لكل صفقة نسبة خاصة purify_rate
+      const P = (J.meta || {}).purification || {};
+      const baseRate = +P.rate || 0;
+      trades.forEach((t) => {
+        t.purifyRate = t.purify_rate != null ? +t.purify_rate : baseRate;
+        t.purify = baseRate || t.purify_rate != null ? Math.max(0, t.realized) * t.purifyRate : 0;
+      });
+      const payments = (J.purification_payments || []).slice().sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+      const due = trades.reduce((a, t) => a + t.purify, 0), paid = payments.reduce((a, x) => a + (+x.amount || 0), 0);
+      const purification = { rate: baseRate, basis: P.basis || "", payments, due, paid, left: due - paid };
+      cb({ meta: J.meta || {}, trades, sum: summarize(trades), purification });
     };
     const s = document.createElement("script");
     s.src = (isDemo ? "data/demo.js" : "data/trades.js") + "?t=" + Date.now();

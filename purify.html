@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>التطهير</title>
+<link rel="stylesheet" href="assets/style.css?v=2d911a4c">
+<style>
+  .pur-hero { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .pur-main { padding: 22px; }
+  .pur-main .hero-value { color: var(--accent); }
+  .pur-main .hero-value.done { color: var(--gain); }
+  .meter { height: 10px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; margin-top: 14px; }
+  .meter > span { display: block; height: 100%; background: var(--gain); border-radius: 999px; }
+  .meter-legend { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 13px; margin-top: 6px; }
+  .rule-note { color: var(--ink-2); font-size: 14px; margin: 0; }
+  .how { display: grid; gap: 6px; font-size: 14px; color: var(--ink-2); }
+  .how code { font-family: var(--text); background: var(--surface-2); border: 1px solid var(--rule); border-radius: 6px; padding: 1px 8px; color: var(--ink); }
+  tfoot td { font-weight: 700; border-top: 1px solid var(--rule-strong); border-bottom: 0; }
+  @media (max-width: 860px) { .pur-hero { grid-template-columns: 1fr; } }
+  @media (max-width: 640px) { tfoot { display: none; } }
+</style>
+</head>
+<body>
+<header class="masthead" data-masthead></header>
+<main id="app"><p class="muted">جارٍ التحميل…</p></main>
+<footer class="foot" data-foot></footer>
+<script src="assets/app.js?v=2d911a4c"></script>
+<script>
+(function () {
+  const T = window.TJ;
+  T.chrome("purify");
+  T.load(({ meta, trades, purification: P }) => {
+    const app = document.getElementById("app");
+    const ratePct = (r) => T.num(T.nf2.format(r * 100).replace(/\.00$/, "") + "%");
+    if (!P || !P.rate) {
+      app.innerHTML = `<div class="page-head"><h1>التطهير</h1></div><div class="card empty"><h2>لم تُحدد نسبة التطهير بعد</h2><p>أخبر Claude بالنسبة التي تريد إخراجها من كل ربح، وتظهر هنا تلقائياً.</p></div>`;
+      return;
+    }
+    const wins = trades.filter((t) => t.purify > 0.004).sort((a, b) => String(b.lastSell || b.buy.date).localeCompare(String(a.lastSell || a.buy.date)));
+    const left = P.left, done = left <= 0.004;
+    const pctPaid = P.due > 0 ? Math.min(100, (P.paid / P.due) * 100) : 0;
+    const k = (label, value, foot) => `<div class="card kpi"><div class="kpi-label">${label}</div><div class="kpi-value">${value}</div>${foot ? `<div class="kpi-foot">${foot}</div>` : ""}</div>`;
+
+    app.innerHTML = `
+      <div class="page-head"><h1>التطهير</h1><div class="updated">${ratePct(P.rate)} من ربح كل صفقة رابحة</div></div>
+      <section class="pur-hero">
+        <div class="card pur-main">
+          <div class="hero-label">${done ? "لا يوجد مبلغ متبقٍ" : "المتبقي عليك إخراجه"}</div>
+          <div class="hero-value ${done ? "done" : ""}">${T.money(Math.max(0, left))}<span class="cur">${T.cur}</span></div>
+          <div class="meter" role="img" aria-label="نسبة ما أُخرج من المستحق"><span style="inline-size:${pctPaid.toFixed(1)}%"></span></div>
+          <div class="meter-legend"><span>أُخرج ${T.num(T.nf2.format(pctPaid).replace(/\.00$/, "") + "%")} من المستحق</span><span>${left < -0.004 ? `زيادة مُخرجة ${T.money(-left)}` : ""}</span></div>
+        </div>
+        <div class="kpis">
+          ${k("إجمالي المستحق", T.money(P.due), `من ${T.num(wins.length)} ${wins.length === 1 ? "صفقة رابحة" : "صفقات رابحة"}`)}
+          ${k("ما أخرجته", T.money(P.paid), `${T.num(P.payments.length)} ${P.payments.length === 1 ? "دفعة" : "دفعات"}`)}
+        </div>
+      </section>
+
+      <section class="grid-2">
+        <div class="card">
+          <div class="card-head"><h2>المستحق من كل صفقة</h2><span class="hint">الأحدث أولاً</span></div>
+          <div class="card-body table-wrap" id="due"></div>
+        </div>
+        <div class="stack">
+          <div class="card">
+            <div class="card-head"><h2>ما أخرجته</h2></div>
+            <div class="card-body" id="paid"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>طريقة الحساب</h2></div>
+            <div class="card-body how">
+              <p class="rule-note">${T.esc(P.basis || "")}</p>
+              <p class="rule-note">الصفقات الخاسرة لا يُحسب عليها تطهير، ولا تُخصم من المستحق.</p>
+              <p class="rule-note">عند الإخراج أرسل لـ Claude مثلاً: <code>أخرجت 100 دولار تطهير</code> فيُسجَّل وينقص من المتبقي.</p>
+            </div>
+          </div>
+        </div>
+      </section>`;
+
+    document.getElementById("due").innerHTML = wins.length ? `<table class="responsive"><thead><tr>
+        <th>الصفقة</th><th>تاريخ البيع</th><th class="n">الربح</th><th class="n">النسبة</th><th class="n">التطهير</th></tr></thead><tbody>` +
+      wins.map((t) => `<tr class="link" data-href="${T.tradeHref(t.id)}">
+        <td class="head-cell"><div class="hc">${T.symCell(t)}<span class="tid">${T.num(T.esc(t.id))}</span></div></td>
+        <td data-label="تاريخ البيع">${T.fmtShort(t.lastSell)}</td>
+        <td class="n" data-label="الربح">${T.signedMoney(t.realized)}</td>
+        <td class="n" data-label="النسبة">${ratePct(t.purifyRate)}</td>
+        <td class="n" data-label="التطهير"><b>${T.money(t.purify)}</b></td></tr>`).join("") +
+      `</tbody><tfoot><tr><td colspan="2">الإجمالي</td><td class="n">${T.signedMoney(wins.reduce((a, t) => a + t.realized, 0))}</td><td></td><td class="n">${T.money(P.due)}</td></tr></tfoot></table>`
+      : `<div class="mini-empty">لا توجد صفقات رابحة بعد.</div>`;
+
+    document.getElementById("paid").innerHTML = P.payments.length ? P.payments.map((x, i, a) =>
+      `<div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:9px 0;${i < a.length - 1 ? "border-bottom:1px solid var(--rule)" : ""}">
+        <div><div>${x.date ? T.fmtDate(x.date) : "تاريخ غير محدد"}</div>${x.note ? `<div class="muted" style="font-size:13px;line-height:1.5">${T.esc(x.note)}</div>` : ""}</div>
+        <b class="gain" style="white-space:nowrap">${T.money(+x.amount || 0)} ${T.cur}</b></div>`).join("")
+      : `<div class="mini-empty">لم يُسجَّل أي إخراج بعد.</div>`;
+
+    app.querySelectorAll("tr[data-href]").forEach((r) => r.addEventListener("click", () => (location.href = r.dataset.href)));
+  });
+})();
+</script>
+</body>
+</html>

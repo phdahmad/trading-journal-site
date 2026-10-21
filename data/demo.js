@@ -4,7 +4,11 @@ window.JOURNAL = {
     "currency": "SAR",
     "starting_capital": 50000,
     "updated": "2026-10-07",
-    "note": "بيانات تجريبية للمعاينة فقط"
+    "note": "بيانات تجريبية للمعاينة فقط",
+    "purification": {
+      "rate": 0.07,
+      "basis": "مثال"
+    }
   },
   "trades": [
     {
@@ -285,6 +289,13 @@ window.JOURNAL = {
       "sells": [],
       "notes": "",
       "receipts": []
+    }
+  ],
+  "purification_payments": [
+    {
+      "date": "2026-09-01",
+      "amount": 40.0,
+      "note": "مثال"
     }
   ]
 };
